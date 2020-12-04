@@ -2,8 +2,9 @@ import MessageController from '@/plugins/VueMessages/Controller';
 
 export default {
   install: (Vue) => {
-    MessageController.init();
-
+    Vue.config.globalProperties.$initVueMessages = function (options) {
+      MessageController.init(options);
+    }
     Vue.config.globalProperties.$messages = function (messageText, messageType) {
       let text = messageText ? messageText : null;
       let type = messageType ? messageType : 'primary';

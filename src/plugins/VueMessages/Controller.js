@@ -1,130 +1,52 @@
 class MessagesController {
   constructor() {
-    this.counter = 1;
     this.messages = [];
-    this.mode = {
-      stack: true
-    };
     this.containers = [];
+    this.containers['top-left'] = null;
     this.containers['top-right'] = null;
+    this.containers['bottom-left'] = null;
+    this.containers['bottom-right'] = null;
   }
 
   /* Methods */
-  init() {
+  init(options) {
+    if (options) {
+      this.DEFAULT_OPTIONS.autoRemove = ((options.autoRemove !== undefined) && (typeof (options.autoRemove) === 'boolean')) ? options.autoRemove : this.DEFAULT_OPTIONS.autoRemove;
+      this.DEFAULT_OPTIONS.duration = ((options.duration !== undefined) && (typeof (options.duration) === 'number')) ? options.duration : this.DEFAULT_OPTIONS.duration;
+      this.DEFAULT_OPTIONS.stackMode = ((options.stackMode !== undefined) && (typeof (options.stackMode) === 'boolean')) ? options.stackMode : this.DEFAULT_OPTIONS.stackMode;
+      this.DEFAULT_OPTIONS.position.left = (options.position.left != null) ? options.position.left : null;
+      this.DEFAULT_OPTIONS.position.right = (options.position.right != null) ? options.position.right : null;
+      this.DEFAULT_OPTIONS.position.top = (options.position.top != null) ? options.position.top : null;
+      this.DEFAULT_OPTIONS.position.bottom = (options.position.bottom != null) ? options.position.bottom : null;
+    }
+
     this.addStyleInHeader();
-
+    this.createMessagesWrapper();
+  }
+  /* Create messages wrapper */
+  createMessagesWrapper() {
+    // BODY
     let pageBody = document.querySelector('body');
+    // Position by option
+    let axisY = (this.DEFAULT_OPTIONS.position.bottom != null) ? 'bottom' : (this.DEFAULT_OPTIONS.position.top != null) ? 'top' : null;
+    let axisX = (this.DEFAULT_OPTIONS.position.right != null) ? 'right' : (this.DEFAULT_OPTIONS.position.left != null) ? 'left' : null;
 
-    this.containers['top-right'] = document.createElement('div');
-    this.containers['top-right'].className = this.MESSAGES_WRAPPER_NAME;
-    pageBody.insertBefore(this.containers['top-right'], pageBody.firstChild);
-  }
+    if (axisY && axisX) {
+      if (document.querySelector(`.${this.MESSAGES_WRAPPER_NAME}`)) document.querySelector(`.${this.MESSAGES_WRAPPER_NAME}`).remove();
 
-  /* Push new message */
-  pushMessage(options) {
-    let opt = options ? options : null;
-    let id = new Date().getTime();
-
-    if (opt) {
-      this.messages[id] = {
-        text: opt.text,
-        type: opt.type
-      };
-
-      if (this.mode.stack === true) {
-        this.viewNewMessage(id);
-      }
-      else {
-        let prevElem = document.querySelector('.vm__message_block');
-
-        if (prevElem != null) prevElem.remove();
-
-        this.viewNewMessage(id);
-      }
+      this.containers[`${axisY}-${axisX}`] = document.createElement('div');
+      this.containers[`${axisY}-${axisX}`].className = this.MESSAGES_WRAPPER_NAME;
+      pageBody.insertBefore(this.containers[`${axisY}-${axisX}`], pageBody.firstChild);
     }
     else {
-      return false;
+      console.error('Set position for messages wrapper!');
     }
   }
-
-  /* View new message */
-  viewNewMessage(id) {
-    let messageId = id;
-    let container = document.querySelector(`.${this.MESSAGES_WRAPPER_NAME}`);
-
-    if (messageId && container) {
-      let msg = document.createElement('div');
-
-      msg.id = `vm__${messageId}`;
-      msg.className = `vm__message_block ${this.messages[messageId].type}`;
-      msg.innerHTML = `
-        <div class="vm__header">
-            <h4 class="vm__title">Message</h4>
-            <button class="vm__btn vm__remove" data-id="${messageId}" onclick="document.getElementById('vm__${messageId}').remove()">&times;</button>
-        </div>
-        <div class="vm__text">${this.messages[messageId].text}</div>
-        <div class="vm__time_status"><span id="vm__line_${messageId}" class="vm__line"></span></div>
-      `;
-      /* Adding new element in DOM */
-      container.insertBefore(msg, container.firstChild);
-
-      /* Timer */
-      let target = document.getElementById(`vm__${messageId}`);
-      // Time to hide - in seconds
-      let lifeTime = this.DEFAULT_OPTIONS.duration;
-      let maxTime = this.DEFAULT_OPTIONS.duration;
-      // Auto close
-      let timerClear = false;
-      // Timer Identification
-      let timerID;
-
-      // Create SetTimeout Timer
-      let timer = (stop) => {
-        if (stop === true) {
-          clearTimeout(timerID);
-
-          timerClear = false;
-        }
-        else {
-          timerID = setTimeout(function UpdateTime() {
-            lifeTime -= 0.1;
-            // Time different in percent for timer status bar
-            let timeDiff = (lifeTime / (maxTime / 100));
-
-            document.getElementById(`vm__line_${messageId}`).style.width = `${timeDiff}%`;
-
-            if (lifeTime < 0) {
-              timerClear = true;
-
-              document.getElementById(`vm__${messageId}`).remove();
-            }
-            else {
-              timer(timerClear);
-            }
-          }, 100);
-        }
-      }
-      // Stop timer
-      let stopTimer = () => {
-        timer(true);
-      }
-
-      /* Run timer for new created element */
-      timer(timerClear);
-
-      target.addEventListener("mouseenter", () => stopTimer());
-      target.addEventListener("mouseleave", () => {if (timerClear === false) timer(false);});
-    }
-    else {
-      return false;
-    }
-  }
-
   /* Adding styles in header */
   addStyleInHeader() {
     let css = this.containerStyle(),
-        head = document.head || document.getElementsByTagName('head')[0],
-        style = document.createElement('style');
+      head = document.head || document.getElementsByTagName('head')[0],
+      style = document.createElement('style');
 
     style.appendChild(document.createTextNode(css));
 
@@ -143,6 +65,7 @@ class MessagesController {
         ${(this.DEFAULT_OPTIONS.position.bottom != null) ? `bottom: ${this.DEFAULT_OPTIONS.position.bottom}px;` : ``}
         ${(this.DEFAULT_OPTIONS.position.left != null) ? `left: ${this.DEFAULT_OPTIONS.position.left}px;` : ``}
         ${(this.DEFAULT_OPTIONS.position.right != null) ? `right: ${this.DEFAULT_OPTIONS.position.right}px;` : ``}
+        z-index: 1000000;
       }
       .vm__message_block {
         max-width: 300px;
@@ -206,6 +129,7 @@ class MessagesController {
         font-weight: 400;
         line-height: 1.4;
         text-align: left;
+        word-break: break-word;
         color: #000000;
       }
       .vm__time_status {
@@ -227,7 +151,7 @@ class MessagesController {
         transition: all .1s ease;
       }
     `;
-    
+
     let colorSchema = `
       .vm__message_block.primary {border-color: #007bff;}
       .vm__message_block.primary .vm__header, 
@@ -268,13 +192,142 @@ class MessagesController {
     return styles;
   }
 
+  /* Push new message */
+  pushMessage(options) {
+    let opt = options ? options : null;
+
+    if (opt) {
+      /* Write new message in messages array */
+      this.messages.push({
+        id: String(new Date().getTime()),
+        text: opt.text,
+        type: opt.type
+      });
+
+      /* If stack mode not active -> remove preview message block */
+      if (this.DEFAULT_OPTIONS.stackMode === false) {
+        let prevElem = document.querySelector('.vm__message_block');
+        if (prevElem != null) prevElem.remove();
+      }
+
+      this.viewNewMessage(opt);
+    }
+    else {
+      return false;
+    }
+  }
+  /* Remove message by ID */
+  removeMessageByID(id) {
+    document.getElementById(`vm__${id}`).remove();
+
+    if (this.DEFAULT_OPTIONS.stackMode === true) this.messages = this.messages.filter(message => message.id !== id);
+    else this.messages = this.messages.filter(message => message.id === 0);
+  }
+  /* Timer for removing message */
+  removeMessageByTime(id) {
+    /* Timer */
+    let target = document.getElementById(`vm__${id}`);
+    // Time to hide - in seconds
+    let lifeTime = this.DEFAULT_OPTIONS.duration;
+    let maxTime = this.DEFAULT_OPTIONS.duration;
+    // Auto close
+    let timerClear = false;
+    // Timer Identification
+    let timerID;
+
+    // Create SetTimeout Timer
+    let timer = (stop) => {
+      if (stop === true) {
+        clearTimeout(timerID);
+
+        timerClear = false;
+      }
+      else {
+        timerID = setTimeout(() => {
+          lifeTime -= 0.1;
+          // Time different in percent for timer status bar
+          let timeDiff = (lifeTime / (maxTime / 100));
+
+          document.getElementById(`vm__line_${id}`).style.width = `${timeDiff}%`;
+
+          if (lifeTime < 0) {
+            timerClear = true;
+
+            this.removeMessageByID(id);
+          }
+          else {
+            timer(timerClear);
+          }
+        }, 100);
+      }
+    }
+    // Stop timer
+    let stopTimer = () => {
+      timer(true);
+    }
+
+    /* Run timer for new created element */
+    timer(timerClear);
+
+    /* Mouse events */
+    target.addEventListener("mouseenter", () => stopTimer());
+    target.addEventListener("mouseleave", () => {if (timerClear === false) timer(false);});
+  }
+  /* View new message */
+  viewNewMessage(options) {
+    let text = options.text;
+    let type = options.type;
+    let id = String(new Date().getTime());
+    let container = document.querySelector(`.${this.MESSAGES_WRAPPER_NAME}`);
+
+    if (text && type && id && container) {
+      /* Create message elements */
+      // Remove button
+      let rmvBtn = document.createElement('button');
+      rmvBtn.className = 'vm__btn vm__remove';
+      rmvBtn.innerHTML = '&times;';
+      rmvBtn.onclick = () => this.removeMessageByID(id);
+
+      // Message block
+      let msg = document.createElement('div');
+      msg.id = `vm__${id}`;
+      msg.className = `vm__message_block ${type}`;
+      msg.innerHTML = `
+        <div class="vm__header">
+            <h4 class="vm__title">Message</h4>
+        </div>
+        <p class="vm__text">${text}</p>
+        ${(this.DEFAULT_OPTIONS.autoRemove === true) ? `<div class="vm__time_status"><span id="vm__line_${id}" class="vm__line"></span></div>` : ``}
+      `;
+      /* Adding new element in DOM */
+      new Promise(resolve => {
+        resolve(container.insertBefore(msg, container.firstChild));
+      }).then(() => {
+        let block = document.querySelector(`#vm__${id}`).querySelector('.vm__header');
+        block.insertBefore(rmvBtn, block.lastChild);
+      });
+
+      if (this.DEFAULT_OPTIONS.autoRemove === true) {
+        this.removeMessageByTime(id);
+      }
+    }
+    else {
+      return false;
+    }
+  }
+
   /* Controller options */
   MESSAGES_WRAPPER_NAME = 'vm__messages_wrapper';
   DEFAULT_OPTIONS = {
-    duration: 20, // sec.
+    autoRemove: true,
+    maxCount: 4,
+    duration: 10, // sec.
+    stackMode: true,
     position: {
+      left: null,
       right: 10,
-      top: 10
+      top: 10,
+      bottom: null
     }, // in px
   }
 }
